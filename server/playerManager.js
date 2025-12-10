@@ -47,3 +47,21 @@ export async function getAllPlayers() {
     return {};
   }
 }
+
+export async function calculateOfflineProgress(id, lastSeen) {
+  const player = await loadPlayer(id);
+  if (!player || !lastSeen) return player;
+
+  const now = Date.now();
+  const offlineSeconds = (now - lastSeen) / 1000;
+
+  // Calculate offline earnings (capped at 24 hours)
+  const maxOfflineTime = 24 * 60 * 60; // 24 hours in seconds
+  const effectiveTime = Math.min(offlineSeconds, maxOfflineTime);
+
+  player.money += player.cps * effectiveTime;
+  player.lastSeen = now;
+
+  await savePlayer(id, player);
+  return player;
+}

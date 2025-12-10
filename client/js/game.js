@@ -3,34 +3,68 @@ import { socket, player as playerRef } from "./globals.js";
 const clickBtn = document.getElementById("clickBtn");
 const moneyEl = document.getElementById("money");
 
+// State management
 let localMoney = 0;
 let localCPS = 0;
+let lastDisplayedMoney = -1; // Track last displayed value
+let lastDisplayedCPS = -1; // Track last displayed CPS
 
+// Load from localStorage
 const savedMoney = localStorage.getItem("localMoney");
 if (savedMoney) {
   localMoney = parseFloat(savedMoney);
-  moneyEl.innerText = Math.floor(localMoney);
+  updateMoneyDisplay(); // Initial display
 }
 
+// Optimized UI update functions
+function updateMoneyDisplay() {
+  const flooredMoney = Math.floor(localMoney);
+  if (flooredMoney !== lastDisplayedMoney) {
+    moneyEl.innerText = flooredMoney;
+    lastDisplayedMoney = flooredMoney;
+  }
+}
+
+function updateCPSDisplay() {
+  // Optional: if you have a CPS display element
+  const cpsEl = document.getElementById("cps");
+  if (cpsEl && localCPS !== lastDisplayedCPS) {
+    cpsEl.textContent = `CPS: ${localCPS.toFixed(1)}`;
+    lastDisplayedCPS = localCPS;
+  }
+}
+
+// Click handler
 clickBtn.onclick = () => {
   localMoney++;
-  moneyEl.innerText = localMoney;
+  updateMoneyDisplay();
   socket.emit("click");
-
   localStorage.setItem("localMoney", localMoney);
 };
 
-// Smooth CPS animation
-setInterval(() => {
-  localMoney += localCPS / 10;
-  moneyEl.innerText = Math.floor(localMoney);
-  localStorage.setItem("localMoney", localMoney);
-}, 100);
+// Smooth CPS animation (throttled updates)
+let lastUpdateTime = 0;
+const UPDATE_INTERVAL = 50; // Update every 50ms for smoother animation
 
+function smoothCPSUpdate(timestamp) {
+  if (timestamp - lastUpdateTime >= UPDATE_INTERVAL) {
+    localMoney += localCPS / (1000 / UPDATE_INTERVAL); // Adjust for actual time passed
+    updateMoneyDisplay();
+    localStorage.setItem("localMoney", localMoney);
+    lastUpdateTime = timestamp;
+  }
+  requestAnimationFrame(smoothCPSUpdate);
+}
+
+// Use requestAnimationFrame for smoother, synchronized updates
+requestAnimationFrame(smoothCPSUpdate);
+
+// Socket event handlers
 socket.on("init", (playerData) => {
   localMoney = playerData.money;
   localCPS = playerData.cps;
-  moneyEl.innerText = Math.floor(localMoney);
+  updateMoneyDisplay();
+  updateCPSDisplay();
   playerRef.data = playerData;
 });
 
@@ -40,25 +74,47 @@ socket.on("updateAll", (allPlayers) => {
 
   const me = allPlayers[playerId];
 
-  localCPS = me.cps;
+  // Only update if values actually changed
+  const moneyChanged = me.money !== localMoney;
+  const cpsChanged = me.cps !== localCPS;
 
-  localMoney = me.money;
+  if (moneyChanged || cpsChanged) {
+    localMoney = me.money;
+    localCPS = me.cps;
 
-  moneyEl.innerText = Math.floor(localMoney);
-  playerRef.data = me;
+    if (moneyChanged) updateMoneyDisplay();
+    if (cpsChanged) updateCPSDisplay();
+
+    playerRef.data = me;
+  }
 });
 
 socket.on("upgradeBought", (data) => {
   console.log("Bought upgrade:", data.upgradeId);
-  // You can update UI here if needed
 });
 
 socket.on("error", (message) => {
   console.error("Server error:", message);
-  alert("Error: " + message);
 });
 
 socket.on("assignId", (newId) => {
   localStorage.setItem("playerId", newId);
   console.log("Assigned new player ID:", newId);
+});
+
+socket.on("offlineEarnings", (data) => {
+  const hours = Math.floor(data.timeOffline / (1000 * 60 * 60));
+  const minutes = Math.floor(
+    (data.timeOffline % (1000 * 60 * 60)) / (1000 * 60)
+  );
+
+  // Update local money with offline earnings
+  localMoney += data.earnings;
+  updateMoneyDisplay();
+
+  console.log(
+    `Offline earnings: ${Math.floor(
+      data.earnings
+    )} coins (${hours}h ${minutes}m offline)`
+  );
 });

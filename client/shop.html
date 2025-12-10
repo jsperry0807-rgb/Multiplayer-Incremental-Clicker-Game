@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shop - Multiplayer Clicker</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1><i class="fas fa-store"></i> Upgrade Shop</h1>
+        <nav>
+          <a href="/game"><i class="fas fa-gamepad"></i> Game</a>
+          <a href="/shop" class="active"
+            ><i class="fas fa-shopping-cart"></i> Shop</a
+          >
+          <a href="/leaderboard"><i class="fas fa-trophy"></i> Leaderboard</a>
+        </nav>
+      </header>
+
+      <div class="shop-container">
+        <div class="player-stats">
+          <div class="stat-box">
+            <h3><i class="fas fa-coins"></i> Coins</h3>
+            <p id="money">0</p>
+          </div>
+          <div class="stat-box">
+            <h3><i class="fas fa-bolt"></i> CPS</h3>
+            <p id="cps">0</p>
+          </div>
+        </div>
+
+        <div class="upgrades-grid" id="upgradesGrid">
+          <!-- Upgrades will be dynamically loaded -->
+        </div>
+
+        <div class="owned-upgrades">
+          <h2><i class="fas fa-check-circle"></i> Owned Upgrades</h2>
+          <div id="ownedUpgrades"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="js/shop.js"></script>
+  </body>
+</html>
